@@ -1,0 +1,17 @@
+ESlider sprintf labels to use exponential form (if large)
+
+Update loop time -> speed, including >1x
+
+checkbox for "exaggerate" size (increase minimum size, decrease max - but don't just cap, stretch toward at both ends and have middling sizes normal(ish))
+
+add particle remove history method, get rid of logic calling history change events to clear it.
+
+in qt gui, replace all manual statusbar.showmessage w/ calls to the method that does it
+
+Move particle proxies to gui? Downside: have to recalculate them every DrawParticles. Perhaps guis.GUIEnabler could include a method which takes mass&charges and returns radius,r,g,b,a, and engine calls this when mass or charge changes & updates the values accordingly?
+
+Implement fyne GUI frontend?
+
+Implement GoGi GUI frontend?
+
+If implement GUI that enables fast particle draws (no more stupid file intermediary), multi-thread physics.UpdateParticles etc., and possibly particle drawing itself depending on how backbuffer access and such work in the GUI

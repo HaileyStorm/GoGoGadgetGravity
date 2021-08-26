@@ -1,0 +1,4 @@
+set GO111MODULE=off
+go get -v github.com/therecipe/qt/cmd/... && for /f %v in ('go env GOPATH') do %v\bin\qtsetup test && %v\bin\qtsetup -test=false
+
+set GO111MODULE=auto
