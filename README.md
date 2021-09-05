@@ -15,3 +15,13 @@ Close Charge is inversely proportional to distance^3.
 Far Charge is *proportional* to distance.
 - It is always positive and therefore attractive.
 - Charges average. Alpha is proxy with charge range  0-1.
+
+
+## Prerequisites
+
+The Qt API by TheRecipe is required if using the guis\qt package. To install it:\
+`set GO111MODULE=off`\
+`go get -v github.com/therecipe/qt/cmd/... && for /f %v in ('go env GOPATH') do 
+    %v\bin\qtsetup test && %v\bin\qtsetup -test=false`\
+`set GO111MODULE=auto`\
+The first time you build, a new folder "qtbox" will be created in the build directory, with the redistributable (platform dependent) Qt component.
