@@ -118,19 +118,13 @@ func (q *Qt) drawCircle(x, y, radius int, r, g, b, a uint8) {
 			if i*i+j*j < radius*radius {
 				tx = x + i
 				ty = y + j
-				if tx >= 0 && ty >= 0 && tx < q.EnvironmentSize && ty < q.EnvironmentSize {
-					q.setPixel(tx, ty, r, g, b, a)
-				}
+				q.setPixel(tx, ty, r, g, b, a)
 				tx = x + i
 				ty = y - j
-				if tx >= 0 && ty >= 0 && tx < q.EnvironmentSize && ty < q.EnvironmentSize {
-					q.setPixel(tx, ty, r, g, b, a)
-				}
+				q.setPixel(tx, ty, r, g, b, a)
 				tx = x - i
 				ty = y - j
-				if tx >= 0 && ty >= 0 && tx < q.EnvironmentSize && ty < q.EnvironmentSize {
-					q.setPixel(tx, ty, r, g, b, a)
-				}
+				q.setPixel(tx, ty, r, g, b, a)
 				tx = x - i
 				ty = y + j
 				if tx >= 0 && ty >= 0 && tx < q.EnvironmentSize && ty < q.EnvironmentSize {
@@ -148,11 +142,16 @@ func (q *Qt) drawCircle(x, y, radius int, r, g, b, a uint8) {
 // setPixel sets the color of a single pixel
 func (q *Qt) setPixel(x, y int, r, g, b, a uint8) {
 	if q.im2qim {
-		// Set the pixel color bytes in the backbuffer. This is >5x the speed of tempImage.Set()
+		// Setting the pixel color bytes in the back-buffer is >5x the speed of img.Set()
 		s := q.tempImage.PixOffset(x, y)
-		q.imgLock.Lock()
+		if s < 0 || s >= len(q.tempImage.Pix) {
+			return
+		}
+
+		// Locks are only necessary if multithreading (and not then if very rare write failures are acceptable - it's just a slice)
+		//q.imgLock.Lock()
 		q.tempImage.Pix[s], q.tempImage.Pix[s+1], q.tempImage.Pix[s+2], q.tempImage.Pix[s+3] = r, g, b, a
-		q.imgLock.Unlock()
+		//q.imgLock.Unlock()
 	} else {
 		q.Canvas.SetPixelColor2(x, y, gui.NewQColor3(int(r), int(g), int(b), int(a)))
 	}
