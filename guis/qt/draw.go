@@ -26,7 +26,7 @@ func (q *Qt) DrawParticles(particles []*physics.Particle) {
 		// fainter (lower alpha)
 		if p.TrackHistory() {
 			for i, h := range p.PositionHistory() {
-				q.drawCircle(
+				q.drawFilledCircle(
 					int(math.Round(h[0])),
 					int(math.Round(h[1])),
 					// Historical positions are drawn smaller
@@ -38,7 +38,7 @@ func (q *Qt) DrawParticles(particles []*physics.Particle) {
 						math.Min(float64(p.HistorySize()), float64(len(p.PositionHistory()))))))
 			}
 		}
-		q.drawCircle(int(math.Round(p.Position()[0])), int(math.Round(p.Position()[1])), p.Radius, p.R, p.G, 0, p.A)
+		q.drawFilledCircle(int(math.Round(p.Position()[0])), int(math.Round(p.Position()[1])), p.Radius, p.R, p.G, 0, p.A)
 	}
 	// If not showing a (temporary) particle merge message, display the number of particles in the tatusbar
 	if !strings.HasPrefix(q.statusbar.CurrentMessage(), "merging") {
@@ -99,43 +99,94 @@ func (q *Qt) DrawViewBox() {
 	}
 }
 
-// drawCircle draws a filled-in circle
-func (q *Qt) drawCircle(x, y, radius int, r, g, b, a uint8) {
+// drawCircleBorder draws a rasterized circle border (ring 1 pixel wide), centered on (cx, cy) and of the
+// color provided by r,g,b,a, using the Midpoint Circle algorithm.
+func (q *Qt) drawCircleBorder(cx, cy, rad int, r, g, b, a uint8) {
 	// If circle falls entirely outside the environment, return
-	if (x+radius < 0 || x-radius > q.EnvironmentSize) && (y+radius < 0 || y-radius > q.EnvironmentSize) {
+	if (cx+rad < 0 || cx-rad > q.EnvironmentSize) && (cy+rad < 0 || cy-rad > q.EnvironmentSize) {
 		return
 	}
 
-	if !q.im2qim {
-		q.Canvas = q.Pixmap.Pixmap().ToImage()
-	}
+	dx, dy, ex, ey := rad-1, 0, 1, 1
+	err := ex - (rad * 2)
 
-	var tx, ty int
-	for i := 0; i <= radius; i++ {
-		for j := 0; j <= radius; j++ {
-			// This is more verbose than simply starting i&j at -1*radius and only doing the +/+ case,
-			// but it's faster to do one radius check than four
-			if i*i+j*j < radius*radius {
-				tx = x + i
-				ty = y + j
-				q.setPixel(tx, ty, r, g, b, a)
-				tx = x + i
-				ty = y - j
-				q.setPixel(tx, ty, r, g, b, a)
-				tx = x - i
-				ty = y - j
-				q.setPixel(tx, ty, r, g, b, a)
-				tx = x - i
-				ty = y + j
-				if tx >= 0 && ty >= 0 && tx < q.EnvironmentSize && ty < q.EnvironmentSize {
-					q.setPixel(tx, ty, r, g, b, a)
-				}
-			}
+	for dx > dy {
+		q.setPixel(cx+dx, cy+dy, r, g, b, a)
+		q.setPixel(cx+dy, cy+dx, r, g, b, a)
+		q.setPixel(cx-dy, cy+dx, r, g, b, a)
+		q.setPixel(cx-dx, cy+dy, r, g, b, a)
+		q.setPixel(cx-dx, cy-dy, r, g, b, a)
+		q.setPixel(cx-dy, cy-dx, r, g, b, a)
+		q.setPixel(cx+dy, cy-dx, r, g, b, a)
+		q.setPixel(cx+dx, cy-dy, r, g, b, a)
+
+		if err <= 0 {
+			dy++
+			err += ey
+			ey += 2
+		}
+		if err > 0 {
+			dx--
+			ex += 2
+			err += ex - (rad * 2)
 		}
 	}
+}
 
-	if !q.im2qim {
-		q.Pixmap.SetPixmap(gui.NewQPixmap().FromImage(q.Canvas, 0))
+// drawFilledCircle draws a filled-in (rasterized) circle, centered on (cx, cy) and of the color provided by r,g,b,a,
+// using a (heavy) modification to the Midpoint Circle algorithm.
+// This method is adapted from https://stackoverflow.com/q/10878209/5061881.
+func (q *Qt) drawFilledCircle(cx, cy, rad int, r, g, b, a uint8) {
+	// If circle falls entirely outside the environment, return
+	if (cx+rad < 0 || cx-rad > q.EnvironmentSize) && (cy+rad < 0 || cy-rad > q.EnvironmentSize) {
+		return
+	}
+
+	err, x, y := -rad, rad, 0
+	var lastY int
+
+	for x >= y {
+		lastY = y
+		err += y
+		y++
+		err += y
+
+		q.drawTwoCenteredLines(cx, cy, x, lastY, r, g, b, a)
+
+		if err >= 0 {
+			if x != lastY {
+				q.drawTwoCenteredLines(cx, cy, lastY, x, r, g, b, a)
+			}
+
+			err -= x
+			x--
+			err -= x
+		}
+	}
+}
+
+// drawTwoCenteredLines draws two lines of length 2*dx+1, centered on (cx,cy) and of the color provided by r,g,b,a,
+// and with a gap of 2*dx-1 rows/pixels between them (that is, the line at cy and dy-1 lines to either side of it are
+// not drawn).
+// This is used by drawFilledCircle. See attribution there.
+func (q *Qt) drawTwoCenteredLines(cx, cy, dx, dy int, r, g, b, a uint8) {
+	q.drawHLine(cx-dx, cy+dy, cx+dx, r, g, b, a)
+	if dy != 0 {
+		q.drawHLine(cx-dx, cy-dy, cx+dx, r, g, b, a)
+	}
+}
+
+// drawHLine draws a horizontal line from (x0,y0) to (x1,y0), of the color provided by r,g,b,a.
+func (q *Qt) drawHLine(x0, y0, x1 int, r, g, b, a uint8) {
+	for x := x0; x <= x1; x++ {
+		q.setPixel(x, y0, r, g, b, a)
+	}
+}
+
+// drawVLine draws a vertical line from (x0,y0) to (x0,y1), of the color provided by r,g,b,a.
+func (q *Qt) drawVLine(x0, y0, y1 int, r, g, b, a uint8) {
+	for y := y0; y <= y1; y++ {
+		q.setPixel(x0, y, r, g, b, a)
 	}
 }
 

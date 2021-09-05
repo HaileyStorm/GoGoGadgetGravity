@@ -168,6 +168,7 @@ func physicsLoop() {
 
 			// Increase State.PhysicsLoopSpeed if actual execution time is longer than the requested time.
 			loopTime := int(time.Since(startPhysicsExecTime).Milliseconds())
+			fmt.Println(loopTime)
 			if loopTime > State.PhysicsLoopSpeed {
 				loopTime = int(float64(loopTime) * 1.05)
 				GUI.SetPhysicsLoopSpeed(loopTime)

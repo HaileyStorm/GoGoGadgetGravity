@@ -16,4 +16,4 @@ Implement GoGi GUI frontend?
 
 If implement GUI that enables fast particle draws (no more stupid file intermediary), multi-thread physics.UpdateParticles etc., and possibly particle drawing itself depending on how backbuffer access and such work in the GUI
 
-Move drawCircle from GUI to main? (Note: drawParticles probably can't be moved as it's proxy dependent - and we probably want to move proxies to the GUI - and how history trails are drawn is also GUI dependent
+Move drawFilledCircle etc. from GUI to main (or CCSL)? (Note: drawParticles probably can't be moved as it's proxy dependent - and we probably want to move proxies to the GUI - and how history trails are drawn is also GUI dependent
